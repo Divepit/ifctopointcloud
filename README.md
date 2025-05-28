@@ -49,6 +49,13 @@ This tool processes Building Information Modeling (BIM) data from IFC files and 
    pip install ifcopenshell open3d numpy
    ```
 
+   or
+
+  ```bash
+   pip install -r requirements.txt
+   ```
+   
+
    **Note**: Installing IfcOpenShell can sometimes be tricky. If you encounter issues:
    - For Windows: Consider using conda: `conda install -c conda-forge ifcopenshell`
    - For Linux/Mac: You may need to install from the official IfcOpenShell website
