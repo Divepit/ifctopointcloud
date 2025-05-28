@@ -49,7 +49,7 @@ def process_batch(batch_data):
     except Exception as e:
         return batch_id, []
 
-def ifc_to_pointcloud(ifc_path, output_path="pointcloud.ply", num_points=100000, 
+def ifc_to_pointcloud(ifc_path, output_path="pointcloud.pcd", mesh_output_path="mesh.ply", num_points=100000, 
                      show_result=True, num_processes=None, exclude_types=None):
     """
     Extract an evenly distributed pointcloud from an IFC file with parallel processing.
@@ -239,9 +239,10 @@ def ifc_to_pointcloud(ifc_path, output_path="pointcloud.ply", num_points=100000,
     print("\nElement types present in the model:")
     for element_type in sorted(meshes_by_type.keys()):
         print(f"  - {element_type}: {len(meshes_by_type[element_type])} elements")
-    
     # Color and combine meshes by type
     print("\nPreparing colored visualization...")
+    combined_mesh = o3d.geometry.TriangleMesh()  # Initialize combined mesh
+
     for i, (element_type, meshes) in enumerate(meshes_by_type.items()):
         color_index = i % len(colors)
         type_mesh = o3d.geometry.TriangleMesh()
@@ -261,15 +262,18 @@ def ifc_to_pointcloud(ifc_path, output_path="pointcloud.ply", num_points=100000,
         combined_mesh += type_mesh
         
         print(f"  - {element_type}: {len(meshes)} elements (Color: {colors[color_index]})")
-    
+
     # Create a coordinate frame for reference
     coordinate_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=1.0)
-    
+
     # STEP 1: Visualize the colored solid mesh model
     print("\nSTEP 1: Displaying the extracted mesh model with colors by element type.")
     print("Colors represent different IFC element types as listed above.")
     print("Close the window when finished inspecting to continue to wireframe view.")
-    
+
+    # Write the combined mesh to file (not the list)
+    o3d.io.write_triangle_mesh(mesh_output_path, combined_mesh)
+
     # Add all meshes and the coordinate frame to the visualization
     visualization_objects = colored_meshes + [coordinate_frame]
     o3d.visualization.draw_geometries(visualization_objects)
@@ -305,7 +309,7 @@ def ifc_to_pointcloud(ifc_path, output_path="pointcloud.ply", num_points=100000,
     # Sample points uniformly
     print(f"Sampling {num_points} points uniformly...")
     pointcloud = combined_mesh.sample_points_uniformly(num_points)
-    pointcloud = pointcloud.voxel_down_sample(voxel_size=0.01)
+    # pointcloud = pointcloud.voxel_down_sample(voxel_size=0.01)
     
     # Save pointcloud
     print(f"Saving pointcloud to {output_path}...")
@@ -381,6 +385,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Convert IFC file to pointcloud with filtering options")
     parser.add_argument("ifc_path", help="Path to the IFC file")
     parser.add_argument("--output", "-o", default="pointcloud.ply", help="Output pointcloud file path")
+    parser.add_argument("--mesh_output", "-m", default="pointcloud.ply", help="Output pointcloud file path")
     parser.add_argument("--points", "-p", type=int, default=100000, help="Number of points to sample")
     parser.add_argument("--processes", "-n", type=int, default=None, help="Number of parallel processes")
     parser.add_argument("--exclude", "-e", nargs='+', default=[], help="List of element types to exclude (e.g. IfcDoor IfcWindow)")
@@ -425,6 +430,7 @@ if __name__ == "__main__":
         ifc_to_pointcloud(
             args.ifc_path, 
             args.output, 
+            args.mesh_output, 
             args.points, 
             not args.no_display, 
             args.processes,
@@ -435,6 +441,7 @@ if __name__ == "__main__":
         ifc_to_pointcloud(
             args.ifc_path, 
             args.output, 
+            args.mesh_output, 
             args.points, 
             not args.no_display, 
             args.processes,
